@@ -36,7 +36,7 @@ Status: **Proposed — awaiting owner review.** The reasoning for each choice is
 | `apps/worker` | Same codebase as the API, separate process | Executes cloud steps of a run from a Postgres-backed job queue (pg-boss or Graphile Worker). Retries are idempotent per step. |
 | `apps/desktop` | Tauri v2 (Rust core + React UI shared with web components) | File/folder selection, grant registry, content extraction, local step execution, previews, diff review, approved writes. |
 | `packages/contracts` | TypeScript + Zod | Workflow DSL schema, step registry, run status, API request/response shapes. Shared by every app. |
-| `packages/workflow` | TypeScript | Plan validator and **policy engine** (pure, heavily tested), built on `contracts`. Arrives in M2. |
+| `packages/workflow` | TypeScript | Spec validator (DAG, registry, approval rules), run-state table, canonical hashing, and the deterministic mock executor (Session 3). The policy engine grows here in M2. |
 | `packages/demo-data` | TypeScript | Synthetic demo project: inputs, plans, and mock results. Used by the web and desktop demo. |
 | `packages/models` | TypeScript | `ModelProvider` interface, adapters, fake provider for tests, token accounting. Server-only. |
 | `packages/db` | Drizzle ORM + SQL migrations | Schema, migrations, query helpers. |
@@ -75,7 +75,7 @@ There are **no** step types for shell, network, git writes, or email sending. Ne
 
 `draft → planned → awaiting_plan_approval → queued → running ⇄ awaiting_local_step / awaiting_action_approval → completed | failed | cancelled`
 
-The API owns all state transitions. Clients request transitions; the server validates them.
+The API owns all state transitions. Clients request transitions; the server validates them. Implemented in Session 3: see [workflow-engine.md](workflow-engine.md) for the exact table, approval checks, idempotency, and the data model.
 
 ### Visual builder (post-V1)
 
@@ -123,8 +123,11 @@ interface ModelProvider {
 
 ## Data (initial sketch)
 
-**Implemented (Session 2, `packages/db/src/schema.ts`):** `users, oauth_accounts, sessions, workspaces, workspace_members, projects, project_items, audit_events`.
-**Planned:** `desktop_devices, refresh_tokens, entitlements, subscriptions, provider_keys (encrypted), workflow_plans, runs, run_steps, approvals, artifacts (encrypted, TTL), usage_ledger, quota_reservations`.
+**Implemented (`packages/db/src/schema.ts`):**
+- Session 2: `users, oauth_accounts, sessions, workspaces, workspace_members, projects, project_items`.
+- Session 3: `workflow_definitions, workflow_versions, workflow_runs, run_steps, approval_requests, quota_reservations`, plus `audit_events`, now append-only and hash-chained.
+
+**Planned:** `desktop_devices, refresh_tokens, entitlements, subscriptions, provider_keys (encrypted), artifacts (encrypted, TTL)`.
 
 `audit_events` is insert-only for the app's DB role. Each row stores `prev_hash` so tampering is detectable. Rows store IDs, hashes, sizes, and decisions, **not file contents, prompts, or keys**.
 
@@ -133,9 +136,9 @@ interface ModelProvider {
 As built in Session 1:
 ```
 apps/{web,api,desktop}            # desktop = Vite/React UI + src-tauri (Rust)
-packages/{contracts,db,demo-data,ui}
+packages/{contracts,db,demo-data,ui,workflow}
 docs/  scripts/
 ```
-To be added in later milestones: `apps/worker` (M7), `packages/models` (M5), `packages/workflow` (M2, policy engine built on the `contracts` schemas), and `crates/agentflow-local` (M9).
+To be added in later milestones: `apps/worker` (M7), `packages/models` (M5), and `crates/agentflow-local` (M9). `packages/workflow` (Session 3) holds spec validation, the state table, and the mock executor.
 `packages/contracts` holds the shared Zod schemas: the workflow DSL, the step registry, and API shapes. It is the single source of truth that `workflow`, `api`, `web`, and `desktop` import.
 pnpm workspaces + Turborepo; Cargo workspace at the repo root.

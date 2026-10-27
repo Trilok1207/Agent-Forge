@@ -39,16 +39,19 @@ export const StepType = z.enum(Object.keys(STEP_REGISTRY) as [StepType, ...StepT
 export const WorkflowKind = z.enum(["documents", "email", "repository"]);
 export type WorkflowKind = z.infer<typeof WorkflowKind>;
 
+export const StepKey = z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/, "lowercase id, max 40 chars");
+
 export const WorkflowStep = z
   .object({
-    id: z.string().min(1),
+    id: StepKey,
     type: StepType,
-    title: z.string().min(1),
-    dependsOn: z.array(z.string()).default([]),
+    title: z.string().min(1).max(200),
+    dependsOn: z.array(StepKey).max(20).default([]),
     /** Opaque grant IDs only — the cloud never handles local paths (B1). */
-    grantIds: z.array(z.string()).default([]),
+    grantIds: z.array(z.string().max(64)).max(20).default([]),
     requiresApproval: z.boolean(),
   })
+  .strict()
   .refine((s) => STEP_REGISTRY[s.type].effect === "none" || s.requiresApproval, {
     message: "Steps with side effects must require approval",
     path: ["requiresApproval"],

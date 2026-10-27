@@ -35,6 +35,8 @@ export interface Config {
   databaseUrl: Secret | null;
   pgliteDir: string | null;
   secureCookies: boolean;
+  /** Optional monthly run limit per workspace for the quota hooks; null = unlimited. */
+  runQuotaPerMonth: number | null;
   oauth: { google: OAuthClientConfig | null; github: OAuthClientConfig | null };
 }
 
@@ -44,6 +46,7 @@ const Env = z.object({
   API_PORT: z.coerce.number().int().positive().default(8787),
   DATABASE_URL: z.string().optional(),
   PGLITE_DIR: z.string().optional(),
+  RUN_QUOTA_PER_MONTH: z.coerce.number().int().positive().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
@@ -74,6 +77,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     databaseUrl: env.DATABASE_URL ? new Secret(env.DATABASE_URL) : null,
     pgliteDir: env.DATABASE_URL ? null : (env.PGLITE_DIR ?? ".data/pglite"),
     secureCookies: origin.startsWith("https://"),
+    runQuotaPerMonth: env.RUN_QUOTA_PER_MONTH ?? null,
     oauth: {
       google: oauthClient(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET),
       github: oauthClient(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET),

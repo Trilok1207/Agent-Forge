@@ -5,6 +5,7 @@ import { generateCodeVerifier, generateState } from "arctic";
 import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { audit } from "../audit";
+import { seedDemoWorkflows } from "../engine/workflows";
 import type { AppEnv, Deps } from "../context";
 import { requireSameOrigin } from "../middleware";
 import type { ProviderProfile } from "./providers";
@@ -233,6 +234,7 @@ async function resolveUser(
       .returning({ id: schema.workspaces.id });
     await tx.insert(schema.workspaceMembers).values({ workspaceId: ws!.id, userId, role: "owner" });
     await seedDemoProject(tx, ws!.id);
+    await seedDemoWorkflows(tx, ws!.id, userId);
     await audit(tx, { actorUserId: userId, action: "user.created", detail: { provider } });
     await audit(tx, {
       actorUserId: userId,

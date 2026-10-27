@@ -1,7 +1,11 @@
+import { randomUUID } from "node:crypto";
 import { createDb, type DbHandle } from "@agentflow/db";
+import pg from "pg";
 import { createApp } from "../app";
 import type { OAuthProvider, ProviderProfile, ProviderRegistry } from "../auth/providers";
 import { loadConfig } from "../config";
+import { ledgerQuota, type QuotaHooks } from "../quota";
+import { createMockExecutor, type StepExecutor } from "@agentflow/workflow";
 
 export const ORIGIN = "http://localhost:3000";
 
@@ -28,19 +32,57 @@ export class TestIdp implements OAuthProvider {
 }
 
 export async function setup(
-  opts: { providers?: ProviderRegistry; env?: Record<string, string> } = {},
+  opts: {
+    providers?: ProviderRegistry;
+    env?: Record<string, string>;
+    quota?: QuotaHooks;
+    executor?: StepExecutor;
+  } = {},
 ) {
-  const handle: DbHandle = createDb();
+  const handle = await freshDb();
   await handle.migrate();
   const config = loadConfig({ NODE_ENV: "test", APP_ORIGIN: ORIGIN, ...opts.env });
   const google = new TestIdp("google");
   const github = new TestIdp("github");
   const providers = opts.providers ?? { google, github };
-  const app = createApp({ db: handle.db, config, providers });
+  const app = createApp({
+    db: handle.db,
+    config,
+    providers,
+    quota: opts.quota ?? ledgerQuota(),
+    executor: opts.executor ?? createMockExecutor(),
+  });
   return { app, handle, config, google, github };
 }
 
 export type Harness = Awaited<ReturnType<typeof setup>>;
+
+/**
+ * In-memory PGlite by default. With TEST_DATABASE_URL set (CI), each harness
+ * gets its own throwaway Postgres database so locking and concurrency run
+ * against the real server.
+ */
+async function freshDb(): Promise<DbHandle> {
+  const url = process.env.TEST_DATABASE_URL;
+  if (!url) return createDb();
+  const name = `agentflow_test_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
+  const admin = new pg.Client({ connectionString: url });
+  await admin.connect();
+  await admin.query(`create database ${name}`);
+  await admin.end();
+  const dbUrl = new URL(url);
+  dbUrl.pathname = `/${name}`;
+  const handle = createDb({ url: dbUrl.toString() });
+  const close = handle.close;
+  handle.close = async () => {
+    await close();
+    const dropper = new pg.Client({ connectionString: url });
+    await dropper.connect();
+    await dropper.query(`drop database if exists ${name} with (force)`);
+    await dropper.end();
+  };
+  return handle;
+}
 
 /** Returns `name=value` pairs from Set-Cookie headers. */
 export function cookiesFrom(res: Response): Record<string, string> {

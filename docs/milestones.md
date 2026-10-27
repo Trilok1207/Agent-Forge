@@ -8,12 +8,12 @@ Boundary IDs (B1–B12) refer to [threat-model.md](threat-model.md).
 | **M0** ✅ | Product & architecture *(Session 0)* | Scope, ADRs, threat model, milestones, setup notes | Docs agree on scope and trust boundaries; no app code changed |
 | **— Gate** | Owner review | Owner signs off decisions and resolves [decisions-pending.md](decisions-pending.md) (brand, providers, billing, hosting) | Written sign-off in `decisions-pending.md` |
 | **M1** ✅ | Monorepo scaffold *(Session 1, see note)* | pnpm/Turborepo workspace, Cargo workspace, TS/ESLint/Prettier configs, Vitest, CI (lint, typecheck, test, `cargo fmt/clippy/test`, audit), `.env.example` with names only, secret-scanning hook | CI green; `pnpm lint typecheck test`; `cargo clippy -D warnings`; no secrets in tree |
-| **M2** | Workflow DSL + policy engine | `packages/workflow`: schema, step registry, validator, policy engine, plain-language plan renderer | Unit + property tests; registry snapshot test (B6); injection plan fixtures rejected (B5); ≥90% coverage on policy |
-| **M3** ◐ | API core, DB, audit, quota primitives *(DB/migrations/audit table done in Session 2)* | `apps/api`, `packages/db` migrations, health route, audit hash chain, reserve/settle quota functions, local Postgres via Docker Compose | Migration up/down test; B8 concurrency test; B10 role + chain tests; API contract tests |
+| **M2** ◐ | Workflow DSL + policy engine *(spec validation, registry, state table in Session 3)* | `packages/workflow`: schema, step registry, validator, policy engine, plain-language plan renderer | Unit + property tests; registry snapshot test (B6); injection plan fixtures rejected (B5); ≥90% coverage on policy |
+| **M3** ✅ | API core, DB, audit, quota primitives *(Sessions 2–3; INSERT-only DB role moves to M14)* | `apps/api`, `packages/db` migrations, health route, audit hash chain, reserve/settle quota functions, local Postgres via Docker Compose | Migration up/down test; B8 concurrency test; B10 role + chain tests; API contract tests |
 | **M4** ✅ | Authentication *(Session 2, web part)* | Google + GitHub OAuth (web), sessions, CSRF, account linking, desktop PKCE code-exchange endpoints, device list/revoke | Auth flow integration tests with mocked IdPs; B11 IDOR test harness; session rotation tests |
 | **M5** | Model gateway (hosted) | `packages/models` interface, FakeProvider, first real adapter (owner-chosen vendor), routing table, usage ledger, log redaction | Canary-key leak test (B7); adapter contract tests against FakeProvider; real-vendor smoke test behind manual flag |
 | **M6** | BYOK | Key submit/rotate/delete, KMS envelope encryption (local dev uses a dev-only KEK), last-4 display, BYOK quota accounting | B7 re-run incl. error paths; encrypted-at-rest test; key never in any API response |
-| **M7** | Planner + run orchestration + approvals | NL → plan, validation, plan-approval flow, worker execution, run state machine, action approvals with content hash | State machine tests; approval hash tests (B3 server side); planner eval set (golden requests → valid plans) |
+| **M7** ◐ | Planner + run orchestration + approvals *(orchestration, approvals, and state machine done in Session 3; planner and worker open)* | NL → plan, validation, plan-approval flow, worker execution, run state machine, action approvals with content hash | State machine tests; approval hash tests (B3 server side); planner eval set (golden requests → valid plans) |
 | **M8** | Web app + safe demo | Responsive Next.js: landing, sign-in, dashboard, request box, plan review, run view, audit viewer, pasted-email workflow, demo project with synthetic data | Playwright E2E (mobile + desktop viewports); accessibility checks (axe); B12 demo test |
 | **M9** | Desktop shell + grants | Tauri v2 app, Windows build, system-browser sign-in, Credential Manager storage, grant registry, local-step pull loop, capability lock-down | `crates/agentflow-local` path tests (B1); capability snapshot (B2); Windows CI build; manual sign-in smoke test |
 | **M10** | Documents workflow | Extractors (txt/md/csv/pdf-text/docx), file-list preview before send, summarize/extract steps, preview + approved save | Extractor fixtures; B3 tamper test; E2E on demo docs; size-cap tests |
@@ -45,6 +45,19 @@ Session 1 delivered M1, plus a **mock-only** preview of parts of M8 and M9, at t
   - M3 audit hash chain, append-only DB role, quota reserve/settle, and migration down-tests.
   - Rate limiting on `/auth/*` (M14).
 - **Checks:** `pnpm check`, `pnpm check:rust`, and Playwright E2E. The public suite runs on PGlite; the signed-in suite needs Postgres via `E2E_DATABASE_URL`.
+
+### Session 3 note: workflow engine foundation
+- **Done:**
+  - `packages/workflow`: spec validation (DAG, registry, approval and preview rules), the run-state transition table, canonical hashing, and the deterministic mock executor.
+  - DB: definitions, immutable versions, runs, steps, approvals, a quota ledger, and an append-only hash-chained audit log.
+  - API: definitions and versions, runs with a required Idempotency-Key, hash-bound plan and action approvals with server recomputation, cancel, and quota hooks (ledger only).
+  - Three demo workflows seeded per workspace.
+  - See [workflow-engine.md](workflow-engine.md).
+- **Gate:** the server validates every transition, and approval can't be bypassed through direct API calls. Proven by `apps/api/src/engine.test.ts`: 29 tests, including mutation-checked approval guards, all passing on PGlite and Postgres 16.
+- **Still open:**
+  - From M2: plain-language plan renderer, property tests, and a coverage gate.
+  - From M7: NL planner, background worker, and web UI for runs.
+  - The visual editor stays post-V1.
 
 ## Release stages
 1. **Internal alpha.** Owner only, hosted mode, FakeProvider plus one vendor. Demo and all three workflows.

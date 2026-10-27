@@ -1,4 +1,4 @@
-import { schema, type Db } from "@agentflow/db";
+import { appendAuditEvent, type AuditDetail, type Db } from "@agentflow/db";
 
 export type AuditAction =
   | "user.created"
@@ -6,22 +6,32 @@ export type AuditAction =
   | "auth.sign_in"
   | "auth.sign_out"
   | "auth.provider_linked"
-  | "session.revoked";
+  | "session.revoked"
+  | "workflow.created"
+  | "workflow.version_created"
+  | "run.created"
+  | "run.transition"
+  | "run.step_completed"
+  | "run.step_failed"
+  | "approval.requested"
+  | "approval.decided"
+  | "quota.reserved"
+  | "quota.denied"
+  | "quota.settled"
+  | "quota.released";
 
-/** Records ids and decisions only. Never pass tokens, secrets, or user content. */
+/**
+ * Appends to the hash-chained, append-only audit log. Ids, codes, and
+ * decisions only: never tokens, secrets, prompts, or file/user content.
+ */
 export async function audit(
-  db: Pick<Db, "insert">,
+  db: Pick<Db, "transaction">,
   e: {
     actorUserId: string | null;
     workspaceId?: string | null;
     action: AuditAction;
-    detail?: Record<string, string | number | boolean>;
+    detail?: AuditDetail;
   },
 ) {
-  await db.insert(schema.auditEvents).values({
-    actorUserId: e.actorUserId,
-    workspaceId: e.workspaceId ?? null,
-    action: e.action,
-    detail: e.detail ?? {},
-  });
+  await appendAuditEvent(db, e);
 }

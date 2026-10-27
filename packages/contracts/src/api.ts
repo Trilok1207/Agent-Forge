@@ -11,6 +11,10 @@ export const HealthResponse = z.object({
 export type HealthResponse = z.infer<typeof HealthResponse>;
 
 export const ErrorResponse = z.object({
-  error: z.object({ code: z.string(), message: z.string() }),
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    details: z.array(z.string()).optional(),
+  }),
 });
 export type ErrorResponse = z.infer<typeof ErrorResponse>;

@@ -84,3 +84,28 @@ Each entry: decision, why, and the tradeoff we accept. Status is **Proposed** un
 **Decision:** A new provider identity whose verified email matches an existing account is **refused** (`account_exists`). Linking happens only through a signed-in, same-origin POST (`/auth/<provider>/link`). Unverified emails are rejected.
 **Why:** Auto-linking by email lets anyone who controls an email at one IdP take over the account created at the other (threat model: account takeover via OAuth linking).
 **Tradeoff:** Slight friction for users who try the second provider first. The sign-in page explains what to do.
+
+### ADR-018 — Engine: explicit state table, compare-and-set transitions, in-request execution (for now)
+**Decision:** Run status changes only through `transition()`. It checks `RUN_TRANSITIONS`, then updates with `WHERE status = :from AND state_version = :v`. Until real model calls exist, steps execute synchronously in the request that unblocks them (a plan or action approval), inside one transaction holding a row lock on the run.
+**Why:** The state machine is verifiable (an exhaustive test over every pair). Duplicate or concurrent requests can't double-apply. Deterministic mock execution needs no queue.
+**Tradeoff:** Long steps would block a request. The background worker (ADR-005, D8) replaces in-request execution when model calls arrive (M5/M7). The tables and states stay the same.
+
+### ADR-019 — Approvals are content-hash bound and re-checked three times
+**Decision:** Every approval stores the exact content and its SHA-256, and the client must echo that hash to approve. The server checks it in three places:
+1. at decision time, against the stored hash;
+2. by recomputing the content from the current version, input, and outputs;
+3. by recomputing again immediately before a side-effecting step runs, also requiring the decider to be a workspace member.
+
+A step's side effect is read from the registry, never from the spec's `requiresApproval` flag.
+**Why:** Approval must not be bypassable by direct API calls, stale UIs, replays, or tampered rows (ADR-007, B3).
+**Tradeoff:** Executors must be deterministic between proposal and write; any drift fails the run (`approval_invalid`). That is intended.
+
+### ADR-020 — Required Idempotency-Key on run creation
+**Decision:** `POST /runs` requires an `Idempotency-Key`. It is unique per (workspace, user, key) and stored with the request hash. A replay returns the original run (`Idempotent-Replayed: true`). The same key with a different body is refused. Approval decisions and cancel are naturally idempotent.
+**Why:** Clients (web, desktop, flaky networks) retry, and a duplicate run would double-reserve quota and duplicate side effects.
+**Tradeoff:** Clients must generate keys. Keys never expire yet; add a retention job with the worker.
+
+### ADR-021 — Append-only, hash-chained audit log
+**Decision:** A DB trigger rejects UPDATE, DELETE, and TRUNCATE on `audit_events`, and FKs are removed so cascades can't rewrite rows. Each row links to the previous row's hash. Appends serialise on a transaction advisory lock. `verifyAuditChain` recomputes the chain.
+**Why:** B10 asks for tamper-evident audit records. The trigger stops the app (and app bugs). The chain exposes edits made by anyone who bypasses the trigger.
+**Tradeoff:** The single global lock serialises audit writes. That's fine at V1 scale; shard the chain per workspace if it becomes hot. A separate least-privilege DB role (INSERT-only) is still to do at deployment (M14).

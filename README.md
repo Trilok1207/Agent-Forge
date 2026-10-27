@@ -4,18 +4,22 @@ Natural-language workflows that ask before they act. A Windows-first Tauri deskt
 
 > Working name: **AgentFlow** (brand decision D1 is still open — see [docs/decisions-pending.md](docs/decisions-pending.md)). This repo previously described an "AgentForge" learning/portfolio site; that direction is superseded by the docs in [`docs/`](docs/README.md) pending the owner's decision.
 
-**Status:** Session 2. Google/GitHub sign-in (disabled until OAuth apps are registered), server-side sessions, workspaces with a seeded demo project, and account screens. Also the landing page, the public mock demo, and a minimal desktop shell. No payments, model calls, agent execution, or local file access yet.
+**Status:** Session 3.
+- **Workflow engine foundation:** versioned workflow definitions, runs with explicit server-validated states, hash-bound plan and action approvals, idempotent run creation, quota hooks (no charging), and an append-only hash-chained audit log. It executes a deterministic **mock** workflow. See [docs/workflow-engine.md](docs/workflow-engine.md).
+- **Also built:** Google/GitHub sign-in (disabled until OAuth apps are registered), workspaces with a seeded demo project, the landing page, the public mock demo, and a minimal desktop shell.
+- **Not yet:** payments, real model calls, local file access, or a visual editor.
 
 ## Repository layout
 
 ```
 apps/
   web/        Next.js website: landing, /demo (public mock), /sign-in, /workspace, /account; proxies /api/* to the API
-  api/        Backend (Hono on Node): OAuth, sessions, workspace-scoped reads, audit events
+  api/        Backend (Hono on Node): OAuth, sessions, workspaces, workflow engine (definitions, runs, approvals)
   desktop/    Tauri v2 Windows app: Vite + React UI in src/, Rust in src-tauri/
 packages/
   contracts/  Shared Zod schemas: workflow DSL, step registry, run status, API shapes
-  db/         Drizzle schema + SQL migrations; Postgres or embedded PGlite
+  db/         Drizzle schema + SQL migrations; Postgres or embedded PGlite; audit chain
+  workflow/   Workflow spec validation, run-state table, hashing, deterministic mock executor
   demo-data/  Synthetic demo project (documents, emails, sample repo) — mock data only
   ui/         Shared React UI + design tokens: logo, DemoWorkspace, approval dialog
 docs/         Product scope, architecture, ADRs, threat model, milestones, setup notes
@@ -57,6 +61,7 @@ To enable sign-in, register OAuth apps ([docs/auth-setup.md](docs/auth-setup.md)
 | `pnpm check:rust` | `cargo fmt --check`, `clippy -D warnings`, `cargo test` (needs the desktop frontend built once: `pnpm build`) |
 | `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm build` | Individual steps (Turborepo) |
 | `pnpm format` | Apply Prettier |
+| `TEST_DATABASE_URL=postgres://… pnpm --filter @agentflow/api test` | API tests on real Postgres (one throwaway database per suite; needs CREATEDB) |
 | `pnpm --filter @agentflow/web test:e2e` | Playwright E2E against production builds (run `pnpm build` first). Public suite uses PGlite; set `E2E_DATABASE_URL` to a Postgres database to also run the signed-in suite |
 | `pnpm check:secrets` | Fail on committed `.env` files, values in `.env.example`, secret-looking `NEXT_PUBLIC_`/`VITE_` names, and common key patterns |
 

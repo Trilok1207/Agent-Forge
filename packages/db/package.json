@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@agentflow/contracts": "workspace:*",
     "@agentflow/demo-data": "workspace:*",
     "@electric-sql/pglite": "^0.5.12",
     "drizzle-orm": "^0.45.4",

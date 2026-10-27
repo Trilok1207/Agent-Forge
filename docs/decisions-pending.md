@@ -22,7 +22,7 @@ The **owner** resolves these at the Session 0 gate, before M1. Sessions must not
 | D5 | Hosting for web, API/worker, Postgres | e.g. Vercel/Netlify for web; Fly/Render/Railway/AWS/GCP for API; managed Postgres (Neon/Supabase/RDS/Cloud SQL) | M3 (dev uses Docker), deployment at M14 |
 | D6 | KMS / secret store for BYOK and platform keys | Follows hosting choice (AWS KMS, GCP KMS, etc.) | M6 |
 | ~~D7~~ | ~~Auth library~~ | **Decided in Session 2:** `arctic` + first-party sessions (ADR-014). Reversible if the owner prefers a managed IdP. | — |
-| D8 | Job queue library | pg-boss vs Graphile Worker (ADR-005) | M7 |
+| D8 | Job queue library | pg-boss vs Graphile Worker (ADR-005). Not needed yet: Session 3 executes the mock workflow in-request (ADR-018). | M5/M7 (with real model calls) |
 | D9 | Error/observability vendor | Sentry or similar, configured to drop content | M14 |
 
 ## Blockers (owner action required, cannot be done by a session)

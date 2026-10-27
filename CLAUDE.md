@@ -16,3 +16,5 @@ Product docs live in `docs/` (start at `docs/README.md`).
 - Tests use FakeProvider by default; real vendor calls only behind an explicit manual flag.
 - No test-only or dev-only login paths in application code. Missing OAuth credentials must never yield a session. Tests inject fake identity providers through `createApp` deps, or write sessions via test fixtures.
 - Every workspace-scoped API route goes through `workspaceRole` (apps/api/src/authz.ts) and gets a cross-user test in `authz.test.ts`.
+- Run status changes only through the engine's `transition()` (checked against `RUN_TRANSITIONS`). Never add an API that sets run, step, or approval state directly. Side effects run only via approved, hash-matched action approvals (docs/workflow-engine.md).
+- `audit_events` is append-only and hash-chained. Write it only via `appendAuditEvent`/`audit()`, and never put content, prompts, outputs, or tokens in `detail`.
