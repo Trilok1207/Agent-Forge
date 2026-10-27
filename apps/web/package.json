@@ -1,0 +1,29 @@
+{
+  "name": "@agentflow/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agentflow/contracts": "workspace:*",
+    "@agentflow/demo-data": "workspace:*",
+    "@agentflow/ui": "workspace:*",
+    "next": "16.4.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint-config-next": "16.4.3",
+    "tailwindcss": "^4.3.3"
+  }
+}

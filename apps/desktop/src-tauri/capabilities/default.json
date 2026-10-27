@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Session 1 shell: app name/version only. No fs, shell, process, or http.",
+  "windows": ["main"],
+  "permissions": ["core:app:allow-version", "core:app:allow-name"]
+}

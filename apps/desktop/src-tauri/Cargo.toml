@@ -1,0 +1,22 @@
+[package]
+name = "agentflow-desktop"
+version = "0.0.0"
+description = "AgentFlow desktop shell"
+edition = "2021"
+publish = false
+license = "MIT"
+
+[lib]
+name = "agentflow_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+# Keep this list minimal. Do NOT add tauri-plugin-shell, -fs, -http, or -process
+# without an ADR and a threat-model row (B2).
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[dev-dependencies]
+serde_json = "1"

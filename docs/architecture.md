@@ -35,7 +35,9 @@ Status: **Proposed — awaiting owner review.** The reasoning for each choice is
 | `apps/api` | TypeScript, Hono on Node, Zod | Auth sessions/tokens, workflow plans and runs, approvals, quotas, audit writes, billing webhooks, BYOK key management. **The only component allowed to decrypt keys or call the model gateway.** |
 | `apps/worker` | Same codebase as the API, separate process | Executes cloud steps of a run from a Postgres-backed job queue (pg-boss or Graphile Worker). Retries are idempotent per step. |
 | `apps/desktop` | Tauri v2 (Rust core + React UI shared with web components) | File/folder selection, grant registry, content extraction, local step execution, previews, diff review, approved writes. |
-| `packages/workflow` | TypeScript + JSON Schema | Workflow DSL types, step registry, plan validator, **policy engine** (pure, heavily tested). Shared by API, web, and desktop UI. |
+| `packages/contracts` | TypeScript + Zod | Workflow DSL schema, step registry, run status, API request/response shapes. Shared by every app. |
+| `packages/workflow` | TypeScript | Plan validator and **policy engine** (pure, heavily tested), built on `contracts`. Arrives in M2. |
+| `packages/demo-data` | TypeScript | Synthetic demo project: inputs, plans, and mock results. Used by the web and desktop demo. |
 | `packages/models` | TypeScript | `ModelProvider` interface, adapters, fake provider for tests, token accounting. Server-only. |
 | `packages/db` | Drizzle ORM + SQL migrations | Schema, migrations, query helpers. |
 | `packages/ui` | React | Shared components: plan view, approval dialog, diff viewer, preview. |
@@ -120,12 +122,14 @@ interface ModelProvider {
 
 `audit_events` is insert-only for the app's DB role. Each row stores `prev_hash` so tampering is detectable. Rows store IDs, hashes, sizes, and decisions, **not file contents, prompts, or keys**.
 
-## Proposed repo layout
+## Repo layout
 
+As built in Session 1:
 ```
-apps/{web,api,worker,desktop}
-packages/{workflow,models,db,ui,config}
-crates/agentflow-local
-docs/
+apps/{web,api,desktop}            # desktop = Vite/React UI + src-tauri (Rust)
+packages/{contracts,demo-data,ui}
+docs/  scripts/
 ```
-pnpm workspaces + Turborepo; Cargo workspace for Rust.
+To be added in later milestones: `apps/worker` (M7), `packages/db` (M3), `packages/models` (M5), `packages/workflow` (M2, policy engine built on the `contracts` schemas), and `crates/agentflow-local` (M9).
+`packages/contracts` holds the shared Zod schemas: the workflow DSL, the step registry, and API shapes. It is the single source of truth that `workflow`, `api`, `web`, and `desktop` import.
+pnpm workspaces + Turborepo; Cargo workspace at the repo root.

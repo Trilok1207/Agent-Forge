@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@import "@agentflow/ui/theme.css";
+@source "../../../packages/ui/src";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 font-sans text-ink-900 antialiased select-none;
+}
+
+textarea,
+pre,
+p,
+td {
+  @apply select-text;
+}

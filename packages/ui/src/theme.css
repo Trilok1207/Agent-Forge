@@ -1,0 +1,63 @@
+/*
+ * AgentFlow design tokens (Tailwind v4 @theme). Imported by apps/web and apps/desktop
+ * after `@import "tailwindcss"`. Brand name is provisional (decision D1).
+ */
+@theme {
+  --font-sans:
+    "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-display:
+    "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:
+    "Cascadia Code", "Cascadia Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-ink-950: #070a16;
+  --color-ink-900: #0c1124;
+  --color-ink-800: #151b36;
+  --color-ink-700: #232a4d;
+
+  --color-brand-50: #eef0ff;
+  --color-brand-100: #dfe3ff;
+  --color-brand-200: #c3c9ff;
+  --color-brand-300: #9ea4ff;
+  --color-brand-400: #7c7dfb;
+  --color-brand-500: #6360f2;
+  --color-brand-600: #5243e6;
+  --color-brand-700: #4535cb;
+  --color-brand-800: #392ea4;
+  --color-brand-900: #312c81;
+
+  --color-flow-300: #6ee7d8;
+  --color-flow-400: #2dd4bf;
+  --color-flow-500: #14b8a6;
+  --color-flow-600: #0d9488;
+
+  --animate-fade-in: fade-in 0.35s ease-out both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
