@@ -9,8 +9,8 @@ Boundary IDs (B1–B12) refer to [threat-model.md](threat-model.md).
 | **— Gate** | Owner review | Owner signs off decisions and resolves [decisions-pending.md](decisions-pending.md) (brand, providers, billing, hosting) | Written sign-off in `decisions-pending.md` |
 | **M1** ✅ | Monorepo scaffold *(Session 1, see note)* | pnpm/Turborepo workspace, Cargo workspace, TS/ESLint/Prettier configs, Vitest, CI (lint, typecheck, test, `cargo fmt/clippy/test`, audit), `.env.example` with names only, secret-scanning hook | CI green; `pnpm lint typecheck test`; `cargo clippy -D warnings`; no secrets in tree |
 | **M2** | Workflow DSL + policy engine | `packages/workflow`: schema, step registry, validator, policy engine, plain-language plan renderer | Unit + property tests; registry snapshot test (B6); injection plan fixtures rejected (B5); ≥90% coverage on policy |
-| **M3** | API core, DB, audit, quota primitives | `apps/api`, `packages/db` migrations, health route, audit hash chain, reserve/settle quota functions, local Postgres via Docker Compose | Migration up/down test; B8 concurrency test; B10 role + chain tests; API contract tests |
-| **M4** | Authentication | Google + GitHub OAuth (web), sessions, CSRF, account linking, desktop PKCE code-exchange endpoints, device list/revoke | Auth flow integration tests with mocked IdPs; B11 IDOR test harness; session rotation tests |
+| **M3** ◐ | API core, DB, audit, quota primitives *(DB/migrations/audit table done in Session 2)* | `apps/api`, `packages/db` migrations, health route, audit hash chain, reserve/settle quota functions, local Postgres via Docker Compose | Migration up/down test; B8 concurrency test; B10 role + chain tests; API contract tests |
+| **M4** ✅ | Authentication *(Session 2, web part)* | Google + GitHub OAuth (web), sessions, CSRF, account linking, desktop PKCE code-exchange endpoints, device list/revoke | Auth flow integration tests with mocked IdPs; B11 IDOR test harness; session rotation tests |
 | **M5** | Model gateway (hosted) | `packages/models` interface, FakeProvider, first real adapter (owner-chosen vendor), routing table, usage ledger, log redaction | Canary-key leak test (B7); adapter contract tests against FakeProvider; real-vendor smoke test behind manual flag |
 | **M6** | BYOK | Key submit/rotate/delete, KMS envelope encryption (local dev uses a dev-only KEK), last-4 display, BYOK quota accounting | B7 re-run incl. error paths; encrypted-at-rest test; key never in any API response |
 | **M7** | Planner + run orchestration + approvals | NL → plan, validation, plan-approval flow, worker execution, run state machine, action approvals with content hash | State machine tests; approval hash tests (B3 server side); planner eval set (golden requests → valid plans) |
@@ -30,6 +30,21 @@ Session 1 delivered M1, plus a **mock-only** preview of parts of M8 and M9, at t
 - **Still open in M9:** sign-in, Credential Manager, the grant registry, `crates/agentflow-local`, and the local-step loop.
 - **Deferred from M1:** gitleaks (a script-based secret check covers it for now), and `cargo audit`/`cargo deny` and `pnpm audit` in CI (planned for M14, can be pulled forward).
 - **Gate for Session 1:** a fresh setup follows the README, the web build works, the Tauri shell launches on Windows, and the demo uses mock data. The Windows launch is verified by the `windows-desktop` CI job, since the session environment is Linux.
+
+### Session 2 note
+- **Done (M4, web):**
+  - Google and GitHub OAuth (PKCE on Google, state and a one-shot flow cookie on both).
+  - Hashed server-side sessions with rotation, expiry, and sliding renewal.
+  - Origin-checked CSRF defence, explicit account linking, and sign-out.
+  - Session list and revoke; the Account, Workspace, and Project screens.
+  - Workspace ownership with a membership-based authorization gate.
+- **Done (M3, part):** `packages/db` (Drizzle schema plus SQL migrations), PGlite for dev/test, Postgres in production, and an `audit_events` table recording sign-in, sign-out, link, revoke, and creation events.
+- **Seeded demo:** each new workspace gets the synthetic Demo project. The public `/demo` still needs no API, account, or credentials.
+- **Still open:**
+  - M4 desktop PKCE code exchange and the device list (moved to M9).
+  - M3 audit hash chain, append-only DB role, quota reserve/settle, and migration down-tests.
+  - Rate limiting on `/auth/*` (M14).
+- **Checks:** `pnpm check`, `pnpm check:rust`, and Playwright E2E. The public suite runs on PGlite; the signed-in suite needs Postgres via `E2E_DATABASE_URL`.
 
 ## Release stages
 1. **Internal alpha.** Owner only, hosted mode, FakeProvider plus one vendor. Demo and all three workflows.

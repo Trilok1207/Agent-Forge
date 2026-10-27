@@ -14,3 +14,5 @@ Product docs live in `docs/` (start at `docs/README.md`).
 - Provider keys never appear in client code, logs, errors, or API responses.
 - Writes and external side effects always require explicit user approval bound to a content hash.
 - Tests use FakeProvider by default; real vendor calls only behind an explicit manual flag.
+- No test-only or dev-only login paths in application code. Missing OAuth credentials must never yield a session. Tests inject fake identity providers through `createApp` deps, or write sessions via test fixtures.
+- Every workspace-scoped API route goes through `workspaceRole` (apps/api/src/authz.ts) and gets a cross-user test in `authz.test.ts`.

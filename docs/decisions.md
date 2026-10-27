@@ -62,3 +62,25 @@ Each entry: decision, why, and the tradeoff we accept. Status is **Proposed** un
 ### ADR-013 — Monorepo: pnpm workspaces + Turborepo + Cargo workspace
 **Why:** Shared DSL, UI, and types. Cached CI.
 **Tradeoff:** More initial setup than separate repos.
+
+---
+
+### ADR-014 — Auth: `arctic` OAuth client + first-party sessions (resolves D7, amends ADR-009)
+**Decision:** Use the small `arctic` library for the Google (PKCE) and GitHub authorization-code flows, with our own session layer in the API. Sessions are a random 256-bit token in an HttpOnly, SameSite=Lax cookie (`__Host-` and Secure on HTTPS). Only the SHA-256 of the token is stored in Postgres. Sessions expire after 30 days, renew past half-life, and rotate on every sign-in.
+**Why:** We need two providers and full control over account linking, session rotation, and authorization tests. Auth.js and Better Auth bring their own schema and adapters plus a larger attack surface. The Lucia-style session model is about 100 lines, and its tests are easy to read.
+**Tradeoff:** We own the session code, so the tests are its guarantee (`apps/api/src/auth.test.ts`). Adding more IdPs or SSO later is manual work.
+
+### ADR-015 — Embedded PGlite for dev/test, Postgres in production
+**Decision:** One Drizzle schema with SQL migrations in `packages/db/drizzle`. With `DATABASE_URL` unset, the API runs embedded PGlite (WASM Postgres) on disk or in memory. In production, `DATABASE_URL` is mandatory.
+**Why:** A fresh clone can sign in, run tests, and use the demo with zero setup. Tests run against real Postgres semantics in-process, with no Docker.
+**Tradeoff:** PGlite allows one connection per data directory, so external tools can't share the dev DB while the API runs. CI also runs the signed-in E2E suite on real Postgres 16 to catch driver differences.
+
+### ADR-016 — Same-origin `/api` proxy from the website to the API
+**Decision:** Next.js rewrites `/api/*` to the API service (`API_BASE_URL`). OAuth callbacks are `<APP_ORIGIN>/api/auth/<provider>/callback`.
+**Why:** Session cookies stay first-party on the site origin with no CORS. The browser never learns the API's address. Secrets stay in the API process.
+**Tradeoff:** One extra hop. `API_BASE_URL` is baked into the web build's rewrite table, so it must be set at build time. The desktop app will call the API directly with bearer tokens (M9), not cookies.
+
+### ADR-017 — Explicit account linking only
+**Decision:** A new provider identity whose verified email matches an existing account is **refused** (`account_exists`). Linking happens only through a signed-in, same-origin POST (`/auth/<provider>/link`). Unverified emails are rejected.
+**Why:** Auto-linking by email lets anyone who controls an email at one IdP take over the account created at the other (threat model: account takeover via OAuth linking).
+**Tradeoff:** Slight friction for users who try the second provider first. The sign-in page explains what to do.

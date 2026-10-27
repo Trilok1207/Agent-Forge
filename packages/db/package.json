@@ -1,0 +1,27 @@
+{
+  "name": "@agentflow/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@agentflow/demo-data": "workspace:*",
+    "@electric-sql/pglite": "^0.5.12",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.15.0",
+    "drizzle-kit": "^0.31.11",
+    "vitest": "^4.1.0"
+  }
+}

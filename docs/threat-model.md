@@ -36,8 +36,9 @@ Status: **Proposed.** Method: identify assets, trust zones, and entry points, th
 | B8 | Quotas and entitlements are enforced only server-side, atomically. | API | Concurrency test: N parallel run starts against a quota of 1 (M3, M13) |
 | B9 | Billing state changes only through verified, idempotent webhooks. | API | Bad-signature, replayed, and out-of-order webhook tests (M13) |
 | B10 | Audit log is append-only and tamper-evident. It stores no content or keys. | DB role grants + hash chain | UPDATE/DELETE denied for app role; chain verification test (M3) |
-| B11 | Users can access only their own runs, artifacts, keys, and audit records. | API authorization layer | Cross-tenant IDOR tests on every route (M4 onward) |
-| B12 | Demo mode has no file-system grants and uses only bundled synthetic data. | Desktop + API demo flag | Demo run with grant creation disabled (M8) |
+| B11 | Users can access only their own workspaces, projects, sessions, runs, artifacts, keys, and audit records. | API authorization layer (`apps/api/src/authz.ts` membership gate; foreign ids → 404) | ✅ `apps/api/src/authz.test.ts` + `apps/web/e2e/signed-in.spec.ts` (Session 2); extend for every new route |
+| B13 | Sessions can't be forged, fixed, replayed after sign-out, or ridden cross-site. Missing OAuth credentials never yield a session. | API session + OAuth layer (ADR-014, ADR-017) | ✅ `apps/api/src/auth.test.ts`: hashed tokens, rotation, expiry, state/PKCE, provider-swap, Origin check, `__Host-` cookies, unconfigured providers (Session 2) |
+| B12 | Demo mode has no file-system grants and uses only bundled synthetic data. | Desktop + API demo flag; seeded demo projects are `is_demo` and synthetic | Demo run with grant creation disabled (M8); Session 2: public demo E2E proves no API calls and no credentials |
 
 ## Threats and mitigations
 
@@ -53,8 +54,8 @@ Status: **Proposed.** Method: identify assets, trust zones, and entry points, th
 | **Key leakage** | Key in error stack or request log | B7; keys wrapped in a `Secret` type whose `toString/toJSON` redact |
 | **Quota bypass / race** | Parallel requests double-spend | B8 reserve-then-settle in one transaction |
 | **Billing fraud** | Forged webhook | B9 |
-| **Account takeover via OAuth linking** | Same email on GitHub (unverified) and Google | Link only verified emails; explicit linking flow when signed in |
-| **CSRF / session fixation** | Cross-site POST | SameSite cookies, CSRF tokens, session rotation on login |
+| **Account takeover via OAuth linking** | Same email on GitHub (unverified) and Google | Verified emails only; no auto-linking by email; explicit signed-in link flow (ADR-017) |
+| **CSRF / session fixation** | Cross-site POST; attacker-planted session | SameSite=Lax cookies; exact `Origin` check on every unsafe method; OAuth `state` + one-shot flow cookie; session rotation on login |
 | **Update channel compromise** | Malicious auto-update | Signed Tauri updates; signed installer (Authenticode); update key held offline |
 | **Supply chain** | Compromised npm or crate | Lockfiles, `pnpm audit`/`cargo audit`/`cargo deny` in CI, pinned versions, minimal deps in the Rust core |
 | **Repudiation** | "I never approved that write" | Audit events with approval ID, content hash, device ID, timestamp |

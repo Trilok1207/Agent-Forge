@@ -1,0 +1,16 @@
+# Optional local Postgres (the API uses embedded PGlite when DATABASE_URL is unset).
+# Usage: POSTGRES_PASSWORD=<choose-a-local-password> docker compose up -d
+# Then in apps/api/.env: DATABASE_URL=postgres://agentflow:<same-password>@127.0.0.1:5432/agentflow
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agentflow
+      POSTGRES_DB: agentflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD for the local database}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - agentflow-pg:/var/lib/postgresql/data
+volumes:
+  agentflow-pg:

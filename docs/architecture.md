@@ -92,7 +92,12 @@ The builder will edit the same `WorkflowPlan` DSL. Plans from either source go t
 
 ## Auth
 
-- **Web:** an OAuth (Google, GitHub) authorization-code flow handled server-side. HttpOnly, Secure, SameSite=Lax session cookie. CSRF protection on mutations.
+- **Web (built in Session 2):** the browser calls `/api/*` on the site origin, and Next.js proxies it to the API (ADR-016).
+  - The API runs the OAuth authorization-code flows with `arctic` (Google with PKCE; GitHub with state). It keeps state, the verifier, and the next path in a 10-minute one-shot HttpOnly cookie.
+  - Users must have a verified email. Accounts link only through an explicit flow (ADR-017).
+  - The session token lives in an HttpOnly, SameSite=Lax cookie (`__Host-` + Secure on HTTPS); only its hash is stored (ADR-014).
+  - Every unsafe method requires `Origin == APP_ORIGIN`.
+  - Workspace-scoped reads go through one membership gate (`workspaceRole`). Foreign or unknown ids return 404.
 - **Desktop:** opens the system browser to the web sign-in, then completes through a **loopback redirect with PKCE** (custom-scheme deep link as a fallback). This yields a one-time code, exchanged for a short-lived access token plus a rotating refresh token. The refresh token is stored in **Windows Credential Manager** (Rust `keyring`), not in WebView storage.
 - **GitHub scopes:** `read:user user:email` only.
 
@@ -118,7 +123,8 @@ interface ModelProvider {
 
 ## Data (initial sketch)
 
-`users, oauth_accounts, sessions, desktop_devices, refresh_tokens, entitlements, subscriptions, provider_keys (encrypted), workflow_plans, runs, run_steps, approvals, artifacts (encrypted, TTL), usage_ledger, quota_reservations, audit_events (append-only)`.
+**Implemented (Session 2, `packages/db/src/schema.ts`):** `users, oauth_accounts, sessions, workspaces, workspace_members, projects, project_items, audit_events`.
+**Planned:** `desktop_devices, refresh_tokens, entitlements, subscriptions, provider_keys (encrypted), workflow_plans, runs, run_steps, approvals, artifacts (encrypted, TTL), usage_ledger, quota_reservations`.
 
 `audit_events` is insert-only for the app's DB role. Each row stores `prev_hash` so tampering is detectable. Rows store IDs, hashes, sizes, and decisions, **not file contents, prompts, or keys**.
 
@@ -127,9 +133,9 @@ interface ModelProvider {
 As built in Session 1:
 ```
 apps/{web,api,desktop}            # desktop = Vite/React UI + src-tauri (Rust)
-packages/{contracts,demo-data,ui}
+packages/{contracts,db,demo-data,ui}
 docs/  scripts/
 ```
-To be added in later milestones: `apps/worker` (M7), `packages/db` (M3), `packages/models` (M5), `packages/workflow` (M2, policy engine built on the `contracts` schemas), and `crates/agentflow-local` (M9).
+To be added in later milestones: `apps/worker` (M7), `packages/models` (M5), `packages/workflow` (M2, policy engine built on the `contracts` schemas), and `crates/agentflow-local` (M9).
 `packages/contracts` holds the shared Zod schemas: the workflow DSL, the step registry, and API shapes. It is the single source of truth that `workflow`, `api`, `web`, and `desktop` import.
 pnpm workspaces + Turborepo; Cargo workspace at the repo root.

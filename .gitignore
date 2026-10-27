@@ -23,3 +23,9 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Local data and test output
+.data/
+.e2e-pglite/
+test-results/
+playwright-report/

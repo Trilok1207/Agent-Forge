@@ -21,12 +21,12 @@ The **owner** resolves these at the Session 0 gate, before M1. Sessions must not
 | D4 | Tier names, prices, quotas | e.g. Free (demo + N runs) / Pro monthly / Pro yearly; token and run limits; BYOK pricing | M13 (limits needed earlier for M3 defaults) |
 | D5 | Hosting for web, API/worker, Postgres | e.g. Vercel/Netlify for web; Fly/Render/Railway/AWS/GCP for API; managed Postgres (Neon/Supabase/RDS/Cloud SQL) | M3 (dev uses Docker), deployment at M14 |
 | D6 | KMS / secret store for BYOK and platform keys | Follows hosting choice (AWS KMS, GCP KMS, etc.) | M6 |
-| D7 | Auth library | Auth.js vs Better Auth (ADR-009); spike in M4 | M4 |
+| ~~D7~~ | ~~Auth library~~ | **Decided in Session 2:** `arctic` + first-party sessions (ADR-014). Reversible if the owner prefers a managed IdP. | — |
 | D8 | Job queue library | pg-boss vs Graphile Worker (ADR-005) | M7 |
 | D9 | Error/observability vendor | Sentry or similar, configured to drop content | M14 |
 
 ## Blockers (owner action required, cannot be done by a session)
-- **OAuth app registrations:** Google Cloud project + OAuth consent screen (identity scopes only, so no restricted-scope verification needed), GitHub OAuth App. Needed by M4.
+- **OAuth app registrations:** Google Cloud project + OAuth consent screen (identity scopes only, so no restricted-scope verification needed), GitHub OAuth App. Sign-in code is ready (Session 2); follow [auth-setup.md](auth-setup.md). Until then sign-in stays disabled.
 - **Code-signing certificate** for Windows (OV/EV Authenticode, or Azure Trusted Signing). Without it, SmartScreen warnings block a credible beta. Needed by M14.
 - **Tauri updater signing key** generated and stored offline by the owner. Needed by M14.
 - **Legal text:** Privacy Policy, Terms of Service, sub-processor list, refund policy (billing vendors require these). Needed before closed beta.

@@ -22,7 +22,9 @@ Web, API, and shared packages can be developed on Windows, macOS, or Linux. **De
 | Next.js | 16.4.3 (App Router, Tailwind CSS v4) |
 | Tauri | 2.x (CLI 2.12, Rust crate `tauri = "2"`); Vite 8 + React 19 frontend |
 | ESLint | 9 (flat config; ESLint 10 is not yet supported by `eslint-config-next` plugins) |
-| Test runner | Vitest 4 (+ jsdom 29 / Testing Library for UI) |
+| Test runner | Vitest 4 (+ jsdom 29 / Testing Library for UI); Playwright 1.63.0 for E2E |
+| Database | Drizzle ORM 0.45 + drizzle-kit; PGlite 0.5 (dev/test), `pg` (Postgres) |
+| OAuth | arctic 3 |
 
 ## Commands
 ```
@@ -48,8 +50,19 @@ pnpm build:desktop       # unsigned NSIS + MSI installers (Windows)
 - No custom IPC commands. Strict CSP (`script-src 'self'`, no `unsafe-eval`).
 - Rust tests in `apps/desktop/src-tauri/src/lib.rs` pin these (B2 groundwork).
 
+## Database
+- **Default:** embedded PGlite (ADR-015). The data lives in `apps/api/.data/pglite` and migrations run on API start. Delete the folder to reset.
+- **Postgres:** set `DATABASE_URL` in `apps/api/.env`. You can use a local install or `POSTGRES_PASSWORD=<local-password> docker compose up -d`. Production requires Postgres.
+- **Schema changes:** edit `packages/db/src/schema.ts`, run `pnpm --filter @agentflow/db generate`, and commit the SQL in `packages/db/drizzle/`. The API bundle copies the migrations into `dist/drizzle`.
+
+## E2E tests
+- `pnpm build`, then `pnpm --filter @agentflow/web test:e2e`. It starts the built API (8787) and web (3200) with **blank OAuth variables**.
+- The signed-in suite needs `E2E_DATABASE_URL=postgres://...`. A test-only fixture (`apps/web/e2e/fixtures.ts`) writes users and sessions directly. The app has no test login route.
+- Playwright is pinned to 1.63.0 to match preinstalled browsers. Elsewhere, run `pnpm --filter @agentflow/web exec playwright install chromium`.
+
 ## Configuration and secrets
-- `.env.example` lists **variable names only**, never values. Real values live in a local untracked `.env` and, in deployed environments, in the hosting provider's secret store.
+- Per-app `.env.example` files (`apps/api`, `apps/web`) list **variable names only**, never values. The API loads `apps/api/.env` outside production; Next.js loads `apps/web/.env.local`. Deployed environments use the host's secret store.
+- OAuth client secrets live only in the API process, wrapped in a `Secret` type that redacts itself in logs and JSON. See [auth-setup.md](auth-setup.md).
 - Dev mode defaults to **FakeProvider**, so no model key is needed to run the app or tests.
 - OAuth dev apps (Google, GitHub), billing test-mode keys, and a dev KEK for BYOK encryption are created by the owner. Sessions must **not** create accounts, register apps, or add credentials.
 - Provider keys are never referenced from `apps/web` client code. A lint rule plus a CI grep blocks `NEXT_PUBLIC_*KEY*`/`*SECRET*` names.

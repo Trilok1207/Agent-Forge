@@ -1,5 +1,6 @@
 import { Logo } from "@agentflow/ui";
 import Link from "next/link";
+import { AccountLink } from "./AccountLink";
 
 const NAV = [
   { href: "/#how", label: "How it works" },
@@ -26,12 +27,9 @@ export function SiteHeader({ dark = false }: { dark?: boolean }) {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <Link
-            href="/sign-in"
+          <AccountLink
             className={`hidden rounded-lg px-3 py-2 text-sm font-medium sm:block ${link}`}
-          >
-            Sign in
-          </Link>
+          />
           <Link
             href="/demo"
             className="rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-500"
