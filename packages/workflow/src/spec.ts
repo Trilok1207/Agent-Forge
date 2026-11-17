@@ -1,11 +1,12 @@
 import { STEP_REGISTRY, WorkflowSpec, type WorkflowStep } from "@agentflow/contracts";
+import { KIND_STEP_POLICY } from "./policy";
 
 export type SpecValidation =
   { ok: true; spec: WorkflowSpec; order: string[] } | { ok: false; issues: string[] };
 
 /**
  * Server-side validation of a workflow definition, beyond the schema:
- * unique step ids, existing dependencies, no cycles, approval on every
+ * step types allowed for the workflow kind, unique step ids, existing dependencies, no cycles, approval on every
  * side-effecting step, and a preview step before any write ("preview before
  * saving"). Returns a deterministic execution order.
  */
@@ -25,6 +26,9 @@ export function validateSpec(input: unknown): SpecValidation {
     byId.set(step.id, step);
   }
   for (const step of spec.steps) {
+    if (!KIND_STEP_POLICY[spec.kind].includes(step.type)) {
+      issues.push(`steps.${step.id}: ${step.type} is not allowed in a ${spec.kind} workflow`);
+    }
     for (const dep of step.dependsOn) {
       if (dep === step.id) issues.push(`steps.${step.id}: depends on itself`);
       else if (!byId.has(dep)) issues.push(`steps.${step.id}: unknown dependency "${dep}"`);

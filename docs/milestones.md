@@ -11,9 +11,9 @@ Boundary IDs (B1–B12) refer to [threat-model.md](threat-model.md).
 | **M2** ◐ | Workflow DSL + policy engine *(spec validation, registry, state table in Session 3)* | `packages/workflow`: schema, step registry, validator, policy engine, plain-language plan renderer | Unit + property tests; registry snapshot test (B6); injection plan fixtures rejected (B5); ≥90% coverage on policy |
 | **M3** ✅ | API core, DB, audit, quota primitives *(Sessions 2–3; INSERT-only DB role moves to M14)* | `apps/api`, `packages/db` migrations, health route, audit hash chain, reserve/settle quota functions, local Postgres via Docker Compose | Migration up/down test; B8 concurrency test; B10 role + chain tests; API contract tests |
 | **M4** ✅ | Authentication *(Session 2, web part)* | Google + GitHub OAuth (web), sessions, CSRF, account linking, desktop PKCE code-exchange endpoints, device list/revoke | Auth flow integration tests with mocked IdPs; B11 IDOR test harness; session rotation tests |
-| **M5** | Model gateway (hosted) | `packages/models` interface, FakeProvider, first real adapter (owner-chosen vendor), routing table, usage ledger, log redaction | Canary-key leak test (B7); adapter contract tests against FakeProvider; real-vendor smoke test behind manual flag |
-| **M6** | BYOK | Key submit/rotate/delete, KMS envelope encryption (local dev uses a dev-only KEK), last-4 display, BYOK quota accounting | B7 re-run incl. error paths; encrypted-at-rest test; key never in any API response |
-| **M7** ◐ | Planner + run orchestration + approvals *(orchestration, approvals, and state machine done in Session 3; planner and worker open)* | NL → plan, validation, plan-approval flow, worker execution, run state machine, action approvals with content hash | State machine tests; approval hash tests (B3 server side); planner eval set (golden requests → valid plans) |
+| **M5** ◐ | Model gateway (hosted) *(gateway, mock, redaction, and budget done in Session 4; real adapter blocked on D2)* | `packages/models` interface, FakeProvider, first real adapter (owner-chosen vendor), routing table, usage ledger, log redaction | Canary-key leak test (B7); adapter contract tests against FakeProvider; real-vendor smoke test behind manual flag |
+| **M6** ◐ | BYOK *(envelope vault, write-only key API, workspace isolation done in Session 4; KMS blocked on D6)* | Key submit/rotate/delete, KMS envelope encryption (local dev uses a dev-only KEK), last-4 display, BYOK quota accounting | B7 re-run incl. error paths; encrypted-at-rest test; key never in any API response |
+| **M7** ◐ | Planner + run orchestration + approvals *(orchestration in Session 3; NL planner and review flow in Session 4; worker and real-model eval set open)* | NL → plan, validation, plan-approval flow, worker execution, run state machine, action approvals with content hash | State machine tests; approval hash tests (B3 server side); planner eval set (golden requests → valid plans) |
 | **M8** | Web app + safe demo | Responsive Next.js: landing, sign-in, dashboard, request box, plan review, run view, audit viewer, pasted-email workflow, demo project with synthetic data | Playwright E2E (mobile + desktop viewports); accessibility checks (axe); B12 demo test |
 | **M9** | Desktop shell + grants | Tauri v2 app, Windows build, system-browser sign-in, Credential Manager storage, grant registry, local-step pull loop, capability lock-down | `crates/agentflow-local` path tests (B1); capability snapshot (B2); Windows CI build; manual sign-in smoke test |
 | **M10** | Documents workflow | Extractors (txt/md/csv/pdf-text/docx), file-list preview before send, summarize/extract steps, preview + approved save | Extractor fixtures; B3 tamper test; E2E on demo docs; size-cap tests |
@@ -58,6 +58,23 @@ Session 1 delivered M1, plus a **mock-only** preview of parts of M8 and M9, at t
   - From M2: plain-language plan renderer, property tests, and a coverage gate.
   - From M7: NL planner, background worker, and web UI for runs.
   - The visual editor stays post-V1.
+
+### Session 4 note: model abstraction and planning
+- **Done:**
+  - `packages/models`: provider-neutral interface without tools, a gateway (input and output limits, hosted token budget, per-attempt timeouts, bounded retries, normalised redacted errors, content-free logs), the mock provider, `Secret` and `redact`, and an envelope-encryption vault.
+  - BYOK key API: write-only, `last4` only, AAD-bound to the workspace.
+  - Planner: fixed prompt, delimited user text, strict output parsing with server-derived safety fields, per-kind policy, and fail-closed validation.
+  - Plan drafts with hash-bound accept/discard. Accepting creates a workflow only.
+  - See [models-and-planning.md](models-and-planning.md).
+- **No real provider:** D2 and D6 are undecided, so config refuses anything but `mock`.
+- **Gate:** no model output directly triggers an action, and invalid plans fail closed. Proven by `apps/api/src/planning.test.ts` (24 tests, two of them mutation-checked) plus planner and gateway unit tests. All pass on PGlite and Postgres 16.
+- **Still open:**
+  - Real adapter and smoke test (D2).
+  - KMS (D6).
+  - Key rotation.
+  - Model calls inside steps.
+  - UI for planning and keys.
+  - Planner eval set with a real model.
 
 ## Release stages
 1. **Internal alpha.** Owner only, hosted mode, FakeProvider plus one vendor. Demo and all three workflows.

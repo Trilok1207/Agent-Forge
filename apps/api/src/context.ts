@@ -3,6 +3,7 @@ import type { StepExecutor } from "@agentflow/workflow";
 import type { ProviderRegistry } from "./auth/providers";
 import type { AuthState } from "./auth/session";
 import type { Config } from "./config";
+import type { ModelsDeps } from "./models/setup";
 import type { QuotaHooks } from "./quota";
 
 export interface Deps {
@@ -11,6 +12,7 @@ export interface Deps {
   providers: ProviderRegistry;
   quota: QuotaHooks;
   executor: StepExecutor;
+  models: ModelsDeps;
 }
 
 export interface AppEnv {

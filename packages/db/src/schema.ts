@@ -305,7 +305,7 @@ export const quotaReservations = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     userId: uuid("user_id").notNull(),
-    kind: text("kind", { enum: ["run"] }).notNull(),
+    kind: text("kind", { enum: ["run", "model_tokens"] }).notNull(),
     amount: integer("amount").notNull(),
     status: text("status", { enum: ["reserved", "settled", "released"] })
       .notNull()
@@ -315,4 +315,65 @@ export const quotaReservations = pgTable(
     closedAt: timestamp("closed_at", { withTimezone: true }),
   },
   (t) => [index("quota_reservations_workspace_idx").on(t.workspaceId, t.createdAt)],
+);
+
+/**
+ * Plans generated from natural language. Model output lands here only after
+ * strict validation; it executes nothing. Accepting a draft (hash-bound)
+ * creates a workflow, which still needs plan and action approvals to run.
+ */
+export const planDrafts = pgTable(
+  "plan_drafts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    /** The user's own request text (their data, shown back to them only). */
+    requestText: text("request_text").notNull(),
+    status: text("status", { enum: ["ready", "accepted", "discarded"] })
+      .notNull()
+      .default("ready"),
+    spec: jsonb("spec").$type<WorkflowSpec>().notNull(),
+    specHash: text("spec_hash").notNull(),
+    provider: text("provider").notNull(),
+    mode: text("mode", { enum: ["hosted", "byok"] }).notNull(),
+    usage: jsonb("usage").$type<Record<string, number>>().notNull(),
+    workflowId: uuid("workflow_id"),
+    createdAt: createdAt(),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("plan_drafts_idempotency_idx").on(t.workspaceId, t.createdBy, t.idempotencyKey),
+    index("plan_drafts_workspace_idx").on(t.workspaceId, t.createdAt),
+  ],
+);
+
+/**
+ * BYOK provider keys, envelope-encrypted (ADR-023). Plaintext is never stored
+ * or returned; only the last 4 characters are kept for display.
+ */
+export const modelCredentials = pgTable(
+  "model_credentials",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    ciphertext: text("ciphertext").notNull(),
+    iv: text("iv").notNull(),
+    tag: text("tag").notNull(),
+    wrappedDek: text("wrapped_dek").notNull(),
+    dekIv: text("dek_iv").notNull(),
+    dekTag: text("dek_tag").notNull(),
+    kekId: text("kek_id").notNull(),
+    last4: text("last4").notNull(),
+    createdBy: uuid("created_by").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("model_credentials_workspace_provider_idx").on(t.workspaceId, t.provider)],
 );

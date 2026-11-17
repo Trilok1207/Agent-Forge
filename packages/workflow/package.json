@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@agentflow/contracts": "workspace:*",
-    "@agentflow/demo-data": "workspace:*"
+    "@agentflow/demo-data": "workspace:*",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

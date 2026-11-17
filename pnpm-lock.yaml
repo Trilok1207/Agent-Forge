@@ -38,6 +38,9 @@ importers:
       '@agentflow/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@agentflow/models':
+        specifier: workspace:*
+        version: link:../../packages/models
       '@agentflow/workflow':
         specifier: workspace:*
         version: link:../../packages/workflow
@@ -225,6 +228,15 @@ importers:
         specifier: ^4.1.0
         version: 4.1.12(@types/node@22.20.5)(jsdom@29.1.1)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
+  packages/models:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
+      vitest:
+        specifier: ^4.1.0
+        version: 4.1.12(@types/node@22.20.5)(jsdom@29.1.1)(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
   packages/ui:
     dependencies:
       '@agentflow/contracts':
@@ -264,6 +276,9 @@ importers:
       '@agentflow/demo-data':
         specifier: workspace:*
         version: link:../demo-data
+      zod:
+        specifier: ^4.3.6
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

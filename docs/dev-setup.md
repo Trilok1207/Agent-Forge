@@ -25,6 +25,7 @@ Web, API, and shared packages can be developed on Windows, macOS, or Linux. **De
 | Test runner | Vitest 4 (+ jsdom 29 / Testing Library for UI); Playwright 1.63.0 for E2E |
 | Database | Drizzle ORM 0.45 + drizzle-kit; PGlite 0.5 (dev/test), `pg` (Postgres) |
 | OAuth | arctic 3 |
+| Models | `@agentflow/models` (in-house gateway; no vendor SDK until D2) |
 
 ## Commands
 ```
@@ -63,7 +64,7 @@ pnpm build:desktop       # unsigned NSIS + MSI installers (Windows)
 ## Configuration and secrets
 - Per-app `.env.example` files (`apps/api`, `apps/web`) list **variable names only**, never values. The API loads `apps/api/.env` outside production; Next.js loads `apps/web/.env.local`. Deployed environments use the host's secret store.
 - OAuth client secrets live only in the API process, wrapped in a `Secret` type that redacts itself in logs and JSON. See [auth-setup.md](auth-setup.md).
-- Dev mode defaults to **FakeProvider**, so no model key is needed to run the app or tests.
+- Dev mode uses the deterministic **mock model provider** (`MODEL_PROVIDER=mock`, the only accepted value until D2), so no model key is needed. BYOK stays off unless `BYOK_KEK` is set; for local testing generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and never commit it. See [models-and-planning.md](models-and-planning.md).
 - OAuth dev apps (Google, GitHub), billing test-mode keys, and a dev KEK for BYOK encryption are created by the owner. Sessions must **not** create accounts, register apps, or add credentials.
 - Provider keys are never referenced from `apps/web` client code. A lint rule plus a CI grep blocks `NEXT_PUBLIC_*KEY*`/`*SECRET*` names.
 - `pnpm check:secrets` (scripts/check-secrets.mjs) runs locally and in CI. A full scanner such as gitleaks can be added later if wanted.

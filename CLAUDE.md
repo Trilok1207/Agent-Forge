@@ -18,3 +18,5 @@ Product docs live in `docs/` (start at `docs/README.md`).
 - Every workspace-scoped API route goes through `workspaceRole` (apps/api/src/authz.ts) and gets a cross-user test in `authz.test.ts`.
 - Run status changes only through the engine's `transition()` (checked against `RUN_TRANSITIONS`). Never add an API that sets run, step, or approval state directly. Side effects run only via approved, hash-matched action approvals (docs/workflow-engine.md).
 - `audit_events` is append-only and hash-chained. Write it only via `appendAuditEvent`/`audit()`, and never put content, prompts, outputs, or tokens in `detail`.
+- Model output is untrusted data. It never triggers an action: planner text goes only through `parsePlannerOutput` into a draft that needs hash-bound review, and execution still needs engine approvals. Never add tool or function calling to `ModelRequest` without an ADR and a threat-model row.
+- All model calls go through the gateway (`packages/models`). No real provider may be added or enabled until the owner decides D2. Keys stay server-side, wrapped in `Secret`, and BYOK keys are encrypted via `KeyVault`.

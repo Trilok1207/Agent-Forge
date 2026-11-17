@@ -16,11 +16,11 @@ The **owner** resolves these at the Session 0 gate, before M1. Sessions must not
 | # | Decision | Options / notes | Needed by |
 |---|---|---|---|
 | D1 | Brand name, domain, and what happens to the current README | AgentFlow vs AgentForge; check trademark and domain availability | M1 (package names), M8 (UI) |
-| D2 | Hosted model vendor(s) and default models | Anthropic, OpenAI, Google, etc. Check data-retention and no-training terms. Which vendors BYOK supports at launch. | M5 |
+| D2 | Hosted model vendor(s) and default models | Anthropic, OpenAI, Google, etc. Check data-retention and no-training terms. Which vendors BYOK supports at launch. **Blocking:** Session 4 ships the gateway with the mock only; `MODEL_PROVIDER` refuses other values until this is decided. | M5 (now) |
 | D3 | Billing vendor | **Stripe** (lowest fees, most control; you handle sales tax/VAT) vs **merchant of record** like Paddle or Lemon Squeezy (they handle global tax; higher fee) | M13 (test mode by M8 is helpful) |
 | D4 | Tier names, prices, quotas | e.g. Free (demo + N runs) / Pro monthly / Pro yearly; token and run limits; BYOK pricing | M13 (limits needed earlier for M3 defaults) |
 | D5 | Hosting for web, API/worker, Postgres | e.g. Vercel/Netlify for web; Fly/Render/Railway/AWS/GCP for API; managed Postgres (Neon/Supabase/RDS/Cloud SQL) | M3 (dev uses Docker), deployment at M14 |
-| D6 | KMS / secret store for BYOK and platform keys | Follows hosting choice (AWS KMS, GCP KMS, etc.) | M6 |
+| D6 | KMS / secret store for BYOK and platform keys | Follows hosting choice (AWS KMS, GCP KMS, etc.). Interim (ADR-023): an owner-generated `BYOK_KEK` in the secret store; without it, BYOK stays off. | M6 / before paid beta |
 | ~~D7~~ | ~~Auth library~~ | **Decided in Session 2:** `arctic` + first-party sessions (ADR-014). Reversible if the owner prefers a managed IdP. | — |
 | D8 | Job queue library | pg-boss vs Graphile Worker (ADR-005). Not needed yet: Session 3 executes the mock workflow in-request (ADR-018). | M5/M7 (with real model calls) |
 | D9 | Error/observability vendor | Sentry or similar, configured to drop content | M14 |

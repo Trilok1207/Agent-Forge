@@ -4,7 +4,8 @@ Natural-language workflows that ask before they act. A Windows-first Tauri deskt
 
 > Working name: **AgentFlow** (brand decision D1 is still open — see [docs/decisions-pending.md](docs/decisions-pending.md)). This repo previously described an "AgentForge" learning/portfolio site; that direction is superseded by the docs in [`docs/`](docs/README.md) pending the owner's decision.
 
-**Status:** Session 3.
+**Status:** Session 4.
+- **Models and planning:** a provider-neutral model gateway (deterministic mock provider only; real vendors wait for owner decision D2), BYOK key encryption, and natural-language requests turned into validated plan drafts that need your review. See [docs/models-and-planning.md](docs/models-and-planning.md).
 - **Workflow engine foundation:** versioned workflow definitions, runs with explicit server-validated states, hash-bound plan and action approvals, idempotent run creation, quota hooks (no charging), and an append-only hash-chained audit log. It executes a deterministic **mock** workflow. See [docs/workflow-engine.md](docs/workflow-engine.md).
 - **Also built:** Google/GitHub sign-in (disabled until OAuth apps are registered), workspaces with a seeded demo project, the landing page, the public mock demo, and a minimal desktop shell.
 - **Not yet:** payments, real model calls, local file access, or a visual editor.
@@ -14,12 +15,13 @@ Natural-language workflows that ask before they act. A Windows-first Tauri deskt
 ```
 apps/
   web/        Next.js website: landing, /demo (public mock), /sign-in, /workspace, /account; proxies /api/* to the API
-  api/        Backend (Hono on Node): OAuth, sessions, workspaces, workflow engine (definitions, runs, approvals)
+  api/        Backend (Hono on Node): OAuth, sessions, workspaces, workflow engine, NL planning, BYOK keys
   desktop/    Tauri v2 Windows app: Vite + React UI in src/, Rust in src-tauri/
 packages/
   contracts/  Shared Zod schemas: workflow DSL, step registry, run status, API shapes
   db/         Drizzle schema + SQL migrations; Postgres or embedded PGlite; audit chain
-  workflow/   Workflow spec validation, run-state table, hashing, deterministic mock executor
+  models/     Model gateway (limits, quota, timeouts, retries, redaction), mock provider, BYOK key vault
+  workflow/   Workflow spec validation, run-state table, planner parser/policy, mock executor
   demo-data/  Synthetic demo project (documents, emails, sample repo) — mock data only
   ui/         Shared React UI + design tokens: logo, DemoWorkspace, approval dialog
 docs/         Product scope, architecture, ADRs, threat model, milestones, setup notes

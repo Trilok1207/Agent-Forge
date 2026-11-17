@@ -6,6 +6,7 @@ import { createApp } from "./app";
 import { createProviders } from "./auth/providers";
 import { loadConfig } from "./config";
 import { backfillDemoWorkflows } from "./engine/workflows";
+import { createModelsDeps } from "./models/setup";
 import { ledgerQuota } from "./quota";
 import { createMockExecutor } from "@agentflow/workflow";
 
@@ -33,12 +34,22 @@ const app = createApp({
   quota: ledgerQuota({ monthlyRunLimit: config.runQuotaPerMonth }),
   // Session 3: deterministic mock execution only. No models, files, or network.
   executor: createMockExecutor(),
+  // Model calls: mock provider only until a vendor is approved (D2). Logs carry no prompts, outputs, or keys.
+  models: createModelsDeps(handle.db, config, {
+    log: (event, fields) => console.log(JSON.stringify({ event, ...fields })),
+  }),
 });
 
 serve({ fetch: app.fetch, port: config.port, hostname: "127.0.0.1" }, (info) => {
   const enabled = Object.keys(providers).filter((k) => providers[k as keyof typeof providers]);
   console.log(`agentflow-api listening on http://127.0.0.1:${info.port}`);
   console.log(`  database: ${handle.kind}${config.pgliteDir ? ` (${config.pgliteDir})` : ""}`);
+  console.log(
+    `  executor: mock (deterministic); run quota: ${config.runQuotaPerMonth ?? "unlimited"}/month`,
+  );
+  console.log(
+    `  model provider: ${config.models.provider}; BYOK: ${config.models.byokKek ? "enabled" : "disabled (no BYOK_KEK)"}`,
+  );
   console.log(
     `  oauth providers: ${enabled.length ? enabled.join(", ") : "none configured (sign-in disabled)"}`,
   );

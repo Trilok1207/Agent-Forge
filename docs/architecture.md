@@ -103,6 +103,8 @@ The builder will edit the same `WorkflowPlan` DSL. Plans from either source go t
 
 ## Model provider abstraction
 
+> Implemented in Session 4 (mock provider only, pending D2). Details: [models-and-planning.md](models-and-planning.md).
+
 ```ts
 interface ModelProvider {
   id: string;                       // "anthropic", "openai", ...
@@ -127,7 +129,9 @@ interface ModelProvider {
 - Session 2: `users, oauth_accounts, sessions, workspaces, workspace_members, projects, project_items`.
 - Session 3: `workflow_definitions, workflow_versions, workflow_runs, run_steps, approval_requests, quota_reservations`, plus `audit_events`, now append-only and hash-chained.
 
-**Planned:** `desktop_devices, refresh_tokens, entitlements, subscriptions, provider_keys (encrypted), artifacts (encrypted, TTL)`.
+- Session 4: `plan_drafts`, `model_credentials` (encrypted BYOK keys).
+
+**Planned:** `desktop_devices, refresh_tokens, entitlements, subscriptions, artifacts (encrypted, TTL)`.
 
 `audit_events` is insert-only for the app's DB role. Each row stores `prev_hash` so tampering is detectable. Rows store IDs, hashes, sizes, and decisions, **not file contents, prompts, or keys**.
 
@@ -136,9 +140,9 @@ interface ModelProvider {
 As built in Session 1:
 ```
 apps/{web,api,desktop}            # desktop = Vite/React UI + src-tauri (Rust)
-packages/{contracts,db,demo-data,ui,workflow}
+packages/{contracts,db,demo-data,models,ui,workflow}
 docs/  scripts/
 ```
-To be added in later milestones: `apps/worker` (M7), `packages/models` (M5), and `crates/agentflow-local` (M9). `packages/workflow` (Session 3) holds spec validation, the state table, and the mock executor.
+To be added in later milestones: `apps/worker` (M7) and `crates/agentflow-local` (M9). `packages/models` (Session 4) holds the gateway, providers, redaction, and the BYOK vault. `packages/workflow` (Session 3) holds spec validation, the state table, and the mock executor.
 `packages/contracts` holds the shared Zod schemas: the workflow DSL, the step registry, and API shapes. It is the single source of truth that `workflow`, `api`, `web`, and `desktop` import.
 pnpm workspaces + Turborepo; Cargo workspace at the repo root.

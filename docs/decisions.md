@@ -109,3 +109,18 @@ A step's side effect is read from the registry, never from the spec's `requiresA
 **Decision:** A DB trigger rejects UPDATE, DELETE, and TRUNCATE on `audit_events`, and FKs are removed so cascades can't rewrite rows. Each row links to the previous row's hash. Appends serialise on a transaction advisory lock. `verifyAuditChain` recomputes the chain.
 **Why:** B10 asks for tamper-evident audit records. The trigger stops the app (and app bugs). The chain exposes edits made by anyone who bypasses the trigger.
 **Tradeoff:** The single global lock serialises audit writes. That's fine at V1 scale; shard the chain per workspace if it becomes hot. A separate least-privilege DB role (INSERT-only) is still to do at deployment (M14).
+
+### ADR-022 — Provider-neutral model gateway; mock-only until a vendor is approved
+**Decision:** Every model call goes through `createModelGateway`, which handles limits, the hosted token budget, timeouts, bounded retries, normalised errors, and content-free logs. Providers implement `ModelProvider`, which has no tool-calling surface. Only the deterministic mock exists. Config refuses any other `MODEL_PROVIDER` until the owner decides D2.
+**Why:** It meets M5's safety requirements (B7, quotas, limits) without choosing a paid vendor or adding credentials. The real adapter later is a small, contract-tested add-on.
+**Tradeoff:** No real-model quality signal yet. The planner's real-model eval set waits for D2.
+
+### ADR-023 — BYOK keys: envelope encryption with an owner-supplied KEK (interim for D6)
+**Decision:** Each BYOK key is sealed with its own AES-256-GCM data key. The data key is wrapped by `BYOK_KEK`. The AAD binds each ciphertext to its workspace and provider. The API is write-only and shows `last4` only. Without a KEK, BYOK is off.
+**Why:** It keeps keys server-side and encrypted at rest now, behind a `KeyVault` interface that a cloud KMS (D6) can implement later.
+**Tradeoff:** The KEK lives in the API's secret store rather than an HSM-backed KMS. Rotating it requires re-encryption, and there is no tooling for that yet. Desktop-held keys in the OS credential store remain a post-V1 option (ADR-010).
+
+### ADR-024 — Model output is data: plans are drafts that a person reviews, and invalid plans fail closed
+**Decision:** The planner returns a strict JSON shape with no safety fields. The server derives `requiresApproval` (from the registry) and `grantIds` (always empty) and runs `validateSpec` plus a per-kind step policy. Any deviation rejects the whole plan, with no repair loop. A valid plan is stored as a draft. Accepting it requires the reviewed `specHash` and creates only a workflow definition. Running it still needs the engine's plan and action approvals.
+**Why:** It satisfies the Session 4 gate: no model output directly triggers an action, and invalid plans fail closed. Prompt injection can at worst produce a rejected plan or a plan the user declines.
+**Tradeoff:** A real model that adds harmless extra fields will be rejected until the prompt or schema is tuned. Retrying is the user's choice.

@@ -4,6 +4,7 @@ import pg from "pg";
 import { createApp } from "../app";
 import type { OAuthProvider, ProviderProfile, ProviderRegistry } from "../auth/providers";
 import { loadConfig } from "../config";
+import { createModelsDeps, type ModelsDeps } from "../models/setup";
 import { ledgerQuota, type QuotaHooks } from "../quota";
 import { createMockExecutor, type StepExecutor } from "@agentflow/workflow";
 
@@ -37,6 +38,7 @@ export async function setup(
     env?: Record<string, string>;
     quota?: QuotaHooks;
     executor?: StepExecutor;
+    models?: (db: DbHandle["db"], config: ReturnType<typeof loadConfig>) => ModelsDeps;
   } = {},
 ) {
   const handle = await freshDb();
@@ -51,6 +53,7 @@ export async function setup(
     providers,
     quota: opts.quota ?? ledgerQuota(),
     executor: opts.executor ?? createMockExecutor(),
+    models: opts.models ? opts.models(handle.db, config) : createModelsDeps(handle.db, config),
   });
   return { app, handle, config, google, github };
 }

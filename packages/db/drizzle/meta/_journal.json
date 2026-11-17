@@ -15,6 +15,13 @@
       "when": 1793087979779,
       "tag": "0001_workflow_engine",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794880357604,
+      "tag": "0002_models_planning",
+      "breakpoints": true
     }
   ]
 }

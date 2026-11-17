@@ -18,7 +18,14 @@ export type AuditAction =
   | "quota.reserved"
   | "quota.denied"
   | "quota.settled"
-  | "quota.released";
+  | "quota.released"
+  | "plan.generated"
+  | "plan.rejected"
+  | "plan.model_failed"
+  | "plan.accepted"
+  | "plan.discarded"
+  | "model_key.saved"
+  | "model_key.deleted";
 
 /**
  * Appends to the hash-chained, append-only audit log. Ids, codes, and

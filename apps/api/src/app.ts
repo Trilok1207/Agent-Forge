@@ -5,6 +5,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { InvalidTransitionError } from "@agentflow/workflow";
 import { EngineError } from "./engine/errors";
 import { runRoutes, workflowRoutes } from "./routes/engine";
+import { modelRoutes, planRoutes } from "./routes/models";
 import { authRoutes } from "./auth/routes";
 import type { AppEnv, Deps } from "./context";
 import { errorBody, loadAuth, noStore, requireSameOrigin } from "./middleware";
@@ -46,6 +47,8 @@ export function createApp(deps: Deps) {
   app.route("/v1/me", meRoutes(deps));
   app.route("/v1/workspaces/:workspaceId/workflows", workflowRoutes(deps));
   app.route("/v1/workspaces/:workspaceId/runs", runRoutes(deps));
+  app.route("/v1/workspaces/:workspaceId/plans", planRoutes(deps));
+  app.route("/v1/workspaces/:workspaceId/models", modelRoutes(deps));
   app.route("/v1/workspaces", workspaceRoutes(deps));
 
   app.notFound((c) =>

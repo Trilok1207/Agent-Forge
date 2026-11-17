@@ -20,7 +20,7 @@ import { errorBody, requireUser } from "../middleware";
 type Env = AppEnv & { Variables: { workspaceId: string } };
 
 /** Session + workspace membership for every engine route (B11). Non-members get 404. */
-function scoped(deps: Deps) {
+export function scoped(deps: Deps) {
   const app = new Hono<Env>();
   app.use("*", requireUser, async (c, next) => {
     const workspaceId = c.req.param("workspaceId") ?? "";
@@ -33,7 +33,7 @@ function scoped(deps: Deps) {
   return app;
 }
 
-async function jsonBody(c: Context) {
+export async function jsonBody(c: Context) {
   try {
     return await c.req.json();
   } catch {
